@@ -165,6 +165,8 @@ type
     function GetActualName(const ADestination: TRttiObject): string; virtual;
     procedure CheckRequiredAttribute(const ADestination: TRttiObject); virtual;
   public
+    function IsRequired(const ADestination: TRttiObject): Boolean; virtual;
+
     function GetValue(const ADestination: TRttiObject;
       const AActivation: IMARSActivation): TValue; virtual;
     property Kind: string read GetKind;
@@ -197,6 +199,7 @@ type
       const APrototypeURL: TMARSURL): Integer;
     function GetSwaggerKind: string; override;
   public
+    function IsRequired(const ADestination: TRttiObject): Boolean; override;
     property ParamIndex: Integer read FParamIndex write FParamIndex;
     function GetValue(const ADestination: TRttiObject;
       const AActivation: IMARSActivation): TValue; override;
@@ -392,9 +395,9 @@ end;
 
 function RolesAllowedAttribute.ToString: string;
 begin
-  Result := inherited ToString;
+  Result := '';
   if Roles.Count > 0 then
-    Result := Result + ': ' + Roles.CommaText;
+    Result := Roles.CommaText;
 end;
 
 { BodyParamAttribute }
@@ -414,7 +417,7 @@ begin
     CheckRequiredAttribute(ADestination);
 
   // 1 - MessageBodyReader mechanism (standard)
-  TMARSMessageBodyReaderRegistry.Instance.FindReader(ADestination, LReader, LMediaType);
+  TMARSMessageBodyReaderRegistry.Instance.FindReader(AActivation, ADestination, LReader, LMediaType);
   if Assigned(LReader) then
     try
       Result := LReader.ReadFrom(AActivation.Request.RawContent, ADestination, LMediaType, AActivation);
@@ -540,7 +543,7 @@ end;
 
 procedure RequestParamAttribute.CheckRequiredAttribute(const ADestination: TRttiObject);
 begin
-  if ADestination.HasAttribute<RequiredAttribute> then
+  if IsRequired(ADestination) then
     raise ERequiredException.CreateFmt('Required %s parameter missing: %s', [Self.GetSwaggerKind, GetActualName(ADestination)]);
 end;
 
@@ -572,6 +575,12 @@ begin
   Result := TValue.Empty;
 end;
 
+function RequestParamAttribute.IsRequired(
+  const ADestination: TRttiObject): Boolean;
+begin
+  Result := ADestination.HasAttribute<RequiredAttribute>;
+end;
+
 { QueryParamAttribute }
 
 function QueryParamAttribute.GetSwaggerKind: string;
@@ -592,7 +601,7 @@ begin
   else
   begin
     // 1 - MessageBodyReader mechanism (standard)
-    TMARSMessageBodyReaderRegistry.Instance.FindReader(ADestination, LReader, LMediaType);
+    TMARSMessageBodyReaderRegistry.Instance.FindReader(AActivation, ADestination, LReader, LMediaType);
     if Assigned(LReader) then
       try
         Result := LReader.ReadFrom(
@@ -636,7 +645,7 @@ begin
   else
   begin
     // 1 - MessageBodyReader mechanism (standard)
-    TMARSMessageBodyReaderRegistry.Instance.FindReader(ADestination, LReader, LMediaType);
+    TMARSMessageBodyReaderRegistry.Instance.FindReader(AActivation, ADestination, LReader, LMediaType);
     if Assigned(LReader) then
       try
         if LParamIndex <> -1 then
@@ -681,7 +690,7 @@ function HeaderParamAttribute.GetValue(const ADestination: TRttiObject;
       CheckRequiredAttribute(TheDestination);
 
     // 1 - MessageBodyReader mechanism (standard)
-    TMARSMessageBodyReaderRegistry.Instance.FindReader(TheDestination, LReader, LMediaType);
+    TMARSMessageBodyReaderRegistry.Instance.FindReader(AActivation, TheDestination, LReader, LMediaType);
     if Assigned(LReader) then
       try
         Result := LReader.ReadFrom(
@@ -796,6 +805,12 @@ begin
     CheckRequiredAttribute(ADestination);
 end;
 
+function PathParamAttribute.IsRequired(
+  const ADestination: TRttiObject): Boolean;
+begin
+  Result := True;
+end;
+
 { AuthorizationAttribute }
 
 function AuthorizationAttribute.ToString: string;
@@ -848,7 +863,7 @@ begin
   else
   begin
     // 1 - MessageBodyReader mechanism (standard)
-    TMARSMessageBodyReaderRegistry.Instance.FindReader(ADestination, LReader, LMediaType);
+    TMARSMessageBodyReaderRegistry.Instance.FindReader(AActivation, ADestination, LReader, LMediaType);
     if Assigned(LReader) then
       try
 
