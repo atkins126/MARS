@@ -81,7 +81,7 @@ end;
 
 class function TOpenAPIHelper.BuildFrom(
   const AActivation: IMARSActivation): TOpenAPI;
-begin
+ begin
   Result := BuildFrom(AActivation.Engine, AActivation.Application);
 end;
 
@@ -303,6 +303,8 @@ var
   LProperty: TSchema;
   LMediaType: string;
   LMetAuthorization: string;
+  LHasFormParams: Boolean;
+  LResponse: TResponse;
 begin
   LMethodSummary := StringFallback([AMet.Summary, AMet.Description, AMet.Name]);
 
@@ -311,7 +313,6 @@ begin
   AOperation.description := AMet.Description;
   AOperation.tags := [ARes.Path];
 
-  // PARAMETERS
   AMet.ForEachParameter(
     procedure (AParam: TMARSRequestParamMetadata)
     var
@@ -325,8 +326,7 @@ begin
         LParam.schema.SetType(AParam.DataTypeRttiType, Self);
         LParam.required := AParam.Required;
       end;
-    end
-  );
+    end);
 
   // REQUEST BODY
   if AMet.Consumes <> '' then
@@ -341,12 +341,27 @@ begin
       if LMediaType = TMediaType.APPLICATION_FORM_URLENCODED_TYPE then
       begin
         LContent.schema.SetType('object');
+        LHasFormParams := False;
         for LParamMD in AMet.ParametersByKind('FormParam') do
         begin
           LProperty := LContent.schema.GetProperty(LParamMD.Name);
           LProperty.description := LParamMD.Description;
           LProperty.SetType(LParamMD.DataTypeRttiType, Self);
+          LHasFormParams := True;
         end;
+        if not LHasFormParams then
+          for LParamMD in AMet.ParametersByKind('BodyParam') do
+          begin
+//            if LParamMD.DataTypeRttiType.Name = 'TArray<MARS.Core.Utils.TFormParam>' then
+//            begin
+//              LContent.schema.SetType('');
+//              LContent.schema.additionalProperties := True;
+//            end
+//            else begin
+              LContent.schema.SetType(LParamMD.DataTypeRttiType, Self);
+              LRequestBody.description := LParamMD.Name + ': ' + LParamMD.DataTypeRttiType.Name;
+//            end;
+          end;
       end
       else // all other request body types
       begin
@@ -354,21 +369,23 @@ begin
         if Assigned(LParamMD) then
         begin
           LContent.schema.SetType(LParamMD.DataTypeRttiType, Self);
-          LRequestBody.description := LParamMD.Name + ': ' + LParamMD.DataTypeRttiType.Name;
+          LRequestBody.description := LParamMD.Description;
+          if LRequestBody.description = ''then
+            LRequestBody.description := LParamMD.Name + ': ' + LParamMD.DataTypeRttiType.Name;
         end;
       end;
     end;
   end;
 
-  var response := AOperation.AddResponse('200');
-  response.description := 'Successful response';
+  LResponse := AOperation.AddResponse('200');
+  LResponse.description := 'Successful response';
   for LMediaType in AMet.Produces.Split([',']) do
   begin
-    response.AddContent(LMediaType)
+    LResponse.AddContent(LMediaType)
       .schema.SetType(AMet.DataTypeRttiType, Self)
   end;
-  if response.content.Count = 0 then
-    response.AddContent('*/*')
+  if LResponse.content.Count = 0 then
+    LResponse.AddContent('*/*')
         .schema.SetType(AMet.DataTypeRttiType, Self);
 
   AOperation.AddResponse('500').description := 'Internal server error';

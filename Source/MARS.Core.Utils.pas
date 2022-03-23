@@ -15,6 +15,10 @@ uses
 ;
 
 type
+  TStringArrayHelper = record helper for TArray<string>
+    function RemoveDuplicates: TArray<string>;
+  end;
+
   TFormParamFile = record
     FieldName: string;
     FileName: string;
@@ -73,13 +77,17 @@ type
   function ISO8601ToDate(const AISODate: string; AReturnUTC: Boolean = False): TDateTime;
 {$endif}
 
-  function DateToJSON(const ADate: TDateTime; AInputIsUTC: Boolean = False): string;
-  function JSONToDate(const ADate: string; AReturnUTC: Boolean = False; const ADefault: TDateTime = 0.0): TDateTime;
+  function DateToJSON(const ADate: TDateTime): string; overload;
+  function DateToJSON(const ADate: TDateTime; const AOptions: TMARSJSONSerializationOptions): string; overload;
+
+  function JSONToDate(const ADate: string; const ADefault: TDateTime = 0.0): TDateTime; overload;
+  function JSONToDate(const ADate: string; const AOptions: TMARSJSONSerializationOptions; const ADefault: TDateTime = 0.0): TDateTime; overload;
 
   function IsMask(const AString: string): Boolean;
   function MatchesMask(const AString, AMask: string): Boolean;
 
-  function GuessTValueFromString(const AString: string): TValue;
+  function GuessTValueFromString(const AString: string): TValue; overload;
+  function GuessTValueFromString(const AString: string; const AOptions: TMARSJSONSerializationOptions): TValue; overload;
   function TValueToString(const AValue: TValue; const ARecursion: Integer = 0): string;
 
   procedure ZipStream(const ASource: TStream; const ADest: TStream; const WindowBits: Integer = 15);
@@ -214,6 +222,11 @@ begin
 end;
 
 function GuessTValueFromString(const AString: string): TValue;
+begin
+  Result := GuessTValueFromString(AString, DefaultMARSJSONSerializationOptions);
+end;
+
+function GuessTValueFromString(const AString: string; const AOptions: TMARSJSONSerializationOptions): TValue;
 var
   LValueInteger, LDummy: Integer;
   LValueDouble: Double;
@@ -235,7 +248,12 @@ begin
     else if TryStrToBool(AString, LValueBool) then
       Result := LValueBool
     else if (AString.CountChar('-') >= 2) and Integer.TryParse(AString.SubString(0, 4), LDummy)
-      and TryISO8601ToDate(AString.DeQuotedString('"'), LValueDateTime, False)
+{$IFDEF MARS_JSON_LEGACY}
+      and TryISO8601ToDate(AString.DeQuotedString('"'), LValueDateTime, joDateIsUTC in AOptions)
+{$ELSE}
+      and TryISO8601ToDate(AString.DeQuotedString('"'), LValueDateTime, AOptions.DateIsUTC)
+{$ENDIF}
+
     then
       Result := LValueDateTime
     else
@@ -264,7 +282,7 @@ begin
     end;
     Result := '[' + Result + ']';
   end
-  else if AValue.Kind in [tkRecord, tkMRecord] then
+  else if AValue.Kind in [tkRecord{$ifdef Delphi11Alexandria_UP}, tkMRecord{$endif}] then
   begin
     LRecordType := TRttiContext.Create.GetType(AValue.TypeInfo) as TRttiRecordType;
 
@@ -348,18 +366,37 @@ begin
 end;
 
 
-function DateToJSON(const ADate: TDateTime; AInputIsUTC: Boolean = False): string;
+function DateToJSON(const ADate: TDateTime): string;
+begin
+  Result := DateToJSON(ADate, DefaultMARSJSONSerializationOptions);
+end;
+
+function DateToJSON(const ADate: TDateTime; const AOptions: TMARSJSONSerializationOptions): string;
 begin
   Result := '';
   if ADate <> 0 then
-    Result := DateToISO8601(ADate, AInputIsUTC);
+{$IFDEF MARS_JSON_LEGACY}
+    Result := DateToISO8601(ADate, joDateIsUTC in AOptions);
+{$ELSE}
+    Result := DateToISO8601(ADate, AOptions.DateIsUTC);
+{$ENDIF}
 end;
 
-function JSONToDate(const ADate: string; AReturnUTC: Boolean = False; const ADefault: TDateTime = 0.0): TDateTime;
+function JSONToDate(const ADate: string; const ADefault: TDateTime = 0.0): TDateTime;
+begin
+  Result := JSONToDate(ADate, DefaultMARSJSONSerializationOptions, ADefault);
+end;
+
+function JSONToDate(const ADate: string; const AOptions: TMARSJSONSerializationOptions; const ADefault: TDateTime = 0.0): TDateTime;
 begin
   Result := ADefault;
   if ADate<>'' then
-    Result := ISO8601ToDate(ADate, AReturnUTC);
+{$IFDEF MARS_JSON_LEGACY}
+    Result := ISO8601ToDate(ADate, joDateIsUTC in AOptions);
+{$ELSE}
+    Result := ISO8601ToDate(ADate, AOptions.DateIsUTC);
+{$ENDIF}
+
 end;
 
 {$ifndef DelphiXE6_UP}
@@ -687,6 +724,23 @@ begin
       end;
     end;
     // no exceptions allowed outside here
+  end;
+end;
+
+{ TStringArrayHelper }
+
+function TStringArrayHelper.RemoveDuplicates: TArray<string>;
+var
+  LStringList: TStringList;
+begin
+  LStringList := TStringList.Create;
+  try
+    LStringList.Sorted := True;
+    LStringList.Duplicates := dupIgnore;
+    LStringList.AddStrings(Self);
+    Result := LStringList.ToStringArray;
+  finally
+    LStringList.Free;
   end;
 end;
 
