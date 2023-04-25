@@ -89,6 +89,8 @@ type
 //    joIndentCaseUpper
 //    joIndentCasePreserve
   end;
+
+  JSONIncludeEmptyValuesAttribute = class(TCustomAttribute);
   {$ENDIF}
 
 {$ifndef DelphiXE6_UP}
@@ -184,6 +186,7 @@ type
 
 
     procedure FromObject(const AObject: TObject; const AFilterProc: TToJSONFilterProc = nil); overload;
+    procedure FromObject(const AObject: TObject; const AFilterProc: TToJSONFilterProc; const AOptions: TMARSJSONSerializationOptions); overload;
     procedure FromObject<T: class>(const AObject: T; const AFilterProc: TToJSONFilterProc = nil); overload;
     procedure ToObject<T: class>(const AInstance: TObject; const AFilterProc: TToObjectFilterProc = nil); overload;
     procedure ToObject(const AInstance: TObject; const AObjectType: TRttiType; const AFilterProc: TToObjectFilterProc = nil); overload;
@@ -239,7 +242,7 @@ type
     class function JSONToRecord(const ARecordType: TRttiType; const AJSON: TJSONObject;
       const AFilterProc: TToRecordFilterProc = nil): TValue; overload;
 
-    class function TValueToJSONValue(const AValue: TValue): TJSONValue;
+    class function TValueToJSONValue(const AValue: TValue; const AOptions: TMARSJSONSerializationOptions): TJSONValue;
     class procedure TJSONValueToTValue(const AValue: TJSONValue; const ADesiredType: TRttiType; var ATValue: TValue);
   end;
 
@@ -248,7 +251,6 @@ type
   function JsonArrayToStringArray(const AJSONArray: TJSONArray): TArray<string>;
   function IntegerArrayToJsonArray(const AIntegerArray: TArray<Integer>): TJSONArray;
   function JsonArrayToIntegerArray(const AJSONArray: TJSONArray): TArray<Integer>;
-
 
   {$IFDEF MARS_JSON_LEGACY}
   var DefaultMARSJSONSerializationOptions: TJSONOptions = [joDateIsUTC, joDateFormatISO8601, joBytesFormatArray, joIndentCaseCamel];
@@ -269,7 +271,7 @@ uses
 ;
 
 class function TJSONObjectHelper.TValueToJSONValue(
-  const AValue: TValue): TJSONValue;
+  const AValue: TValue; const AOptions: TMARSJSONSerializationOptions): TJSONValue;
 var
   LArray: TJSONArray;
   LIndex: Integer;
@@ -295,7 +297,7 @@ begin
     LArray := TJSONArray.Create;
     try
       for LIndex := 0 to AValue.GetArrayLength-1 do
-         LArray.AddElement(TValueToJSONValue(AValue.GetArrayElement(LIndex)));
+         LArray.AddElement(TValueToJSONValue(AValue.GetArrayElement(LIndex), AOptions));
 
       Result := LArray;
     except
@@ -330,26 +332,26 @@ begin
     LVariantValue := AValue.AsVariant;
     case VarType(LVariantValue) of
       varSmallint, varInteger, varShortInt, varByte, varWord, varUInt32, varUInt64:
-        Result := TValueToJSONValue(StrToInt(VarToStr(LVariantValue)));
+        Result := TValueToJSONValue(StrToInt(VarToStr(LVariantValue)), AOptions);
       varSingle, varDouble:
-        Result := TValueToJSONValue(StrToFloat(VarToStr(LVariantValue)));
+        Result := TValueToJSONValue(StrToFloat(VarToStr(LVariantValue)), AOptions);
       varCurrency:
-        Result := TValueToJSONValue(StrToCurr(VarToStr(LVariantValue)));
+        Result := TValueToJSONValue(StrToCurr(VarToStr(LVariantValue)), AOptions);
       varBoolean:
-        Result := TValueToJSONValue(LVariantValue = True);
+        Result := TValueToJSONValue(LVariantValue = True, AOptions);
       varNull:
         Result := TJSONNull.Create();
       varDate:
-        Result := TValueToJSONValue(TDateTime(LVariantValue));
+        Result := TValueToJSONValue(TDateTime(LVariantValue), AOptions);
       varString, varUString:
-        Result := TValueToJSONValue(VarToStr(LVariantValue));
+        Result := TValueToJSONValue(VarToStr(LVariantValue), AOptions);
       else
-        Result := TValueToJSONValue(VarToStrDef(LVariantValue, VarTypeAsText(VarType(LVariantValue))));
+        Result := TValueToJSONValue(VarToStrDef(LVariantValue, VarTypeAsText(VarType(LVariantValue))), AOptions);
     end;
-//    Result := TValueToJSONValue( TValue.FromVariant(AValue.AsVariant) )
+//    Result := TValueToJSONValue( TValue.FromVariant(AValue.AsVariant), AOptions )
   end
   else if (AValue.IsInstanceOf(TObject)) then
-    Result := ObjectToJSON(AValue.AsObject)
+    Result := ObjectToJSON(AValue.AsObject, AOptions)
 
   else
     Result := TJSONString.Create(AValue.ToString);
@@ -735,7 +737,7 @@ begin
   TRttiHelper.EnumerateObjectList(AObjectList,
     procedure (AValue: TValue)
     begin
-      LResult.AddElement(TValueToJSONValue(AValue));
+      LResult.AddElement(TValueToJSONValue(AValue, AOptions));
     end
   );
 
@@ -757,7 +759,7 @@ begin
   Result := TJSONObject.Create;
   try
     if Assigned(AObject) then
-      Result.FromObject(AObject);
+      Result.FromObject(AObject, nil, AOptions);
   except
     Result.Free;
     raise;
@@ -854,7 +856,7 @@ begin
   TRttiHelper.EnumerateDictionary(ADictionary,
     procedure (AKey: TValue; AValue: TValue)
     begin
-      LResult.AddPair(AKey.ToString, TValueToJSONValue(AValue));
+      LResult.AddPair(AKey.ToString, TValueToJSONValue(AValue, AOptions));
     end
   );
 
@@ -862,7 +864,7 @@ begin
 end;
 
 procedure TJSONObjectHelper.FromObject(const AObject: TObject;
-  const AFilterProc: TToJSONFilterProc);
+  const AFilterProc: TToJSONFilterProc; const AOptions: TMARSJSONSerializationOptions);
 
   function GetObjectFilterProc(const AObjectType: TRttiType): TToJSONFilterProc;
   var
@@ -920,12 +922,18 @@ begin
         {$else}
           if LValue.IsType<TValue> and (not LValue.IsArray) then
         {$endif}
-          WriteTValue(LJSONName, LValue.AsType<TValue>) //unboxing TValue from TValue
+          WriteTValue(LJSONName, LValue.AsType<TValue>, AOptions) //unboxing TValue from TValue
         else
-          WriteTValue(LJSONName, LValue);
+          WriteTValue(LJSONName, LValue, AOptions);
       end;
     end;
   end;
+end;
+
+procedure TJSONObjectHelper.FromObject(const AObject: TObject;
+  const AFilterProc: TToJSONFilterProc);
+begin
+  FromObject(AObject, AFilterProc, DefaultMARSJSONSerializationOptions);
 end;
 
 procedure TJSONObjectHelper.FromObject<T>(const AObject: T;
@@ -1465,7 +1473,7 @@ procedure TJSONObjectHelper.WriteTValue(const AName: string;
 var
   LValue: TJSONValue;
 begin
-  LValue := TValueToJSONValue(AValue);
+  LValue := TValueToJSONValue(AValue, AOptions);
 
 {$IFNDEF MARS_JSON_LEGACY}
   if AOptions.SkipEmptyValues then
