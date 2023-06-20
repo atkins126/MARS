@@ -189,42 +189,35 @@ end;
 
 function TFileSystemResource.GetContent: TMARSResponse;
 var
-  LRelativePath: string;
-  LFullPath: string;
-  LIndexFileFullPath: string;
-  LPathTokens: TArray<string>;
-  LBasePath: string;
+  LRelativePath, LBasePath, LFullPath, LIndexFileFullPath: string;
+  LWildcardPosition: Integer;
 begin
   Result := TMARSResponse.Create;
   Result.StatusCode := 404;
 
-  LPathTokens := URL.PathTokens;
-  LRelativePath := SmartConcat(LPathTokens, PathDelim);
+  LRelativePath := SmartConcat(URL.PathTokens
+    , '/').Replace('/', PathDelim, [rfReplaceAll]);
 
-(*
-  LBasePath := URL.BasePath.Replace('/', PathDelim, [rfReplaceAll]);
-//  if (URL.Resource <> '') and (URL.HasSubResources) then
-//    LBasePath := TPath.Combine(LBasePath, URL.Resource.Replace('/', PathDelim, [rfReplaceAll]));
-*)
+  LBasePath := SmartConcat([
+      Activation.Engine.BasePath, Activation.Application.BasePath, Activation.ResourcePath
+    ], '/').Replace('/', PathDelim, [rfReplaceAll]);
 
-  LBasePath :=
-    IncludeTrailingPathDelimiter(Activation.Engine.BasePath.Replace('/', PathDelim, [rfReplaceAll]))
-  + IncludeTrailingPathDelimiter(Activation.Application.BasePath.Replace('/', PathDelim, [rfReplaceAll]))
-  + IncludeTrailingPathDelimiter(Activation.ResourcePath.Replace('/', PathDelim, [rfReplaceAll]))
-  ;
-
+  // strip eventual initial PathDelim
   if LBasePath.StartsWith(PathDelim) then
     LBasePath := LBasePath.Substring(string(PathDelim).Length);
 
-  if LBasePath.Contains(TMARSURL.PATH_PARAM_WILDCARD) then
-    LBasePath := LBasePath.Substring(0, LBasePath.IndexOf(TMARSURL.PATH_PARAM_WILDCARD) - 1);
+  // stop at eventual wildcard position
+  LWildcardPosition := LBasePath.IndexOf(TMARSURL.PATH_PARAM_WILDCARD);
+  if LWildcardPosition <> -1 then
+    LBasePath := LBasePath.Substring(0, LWildcardPosition - 1);
 
-
+  // make relative path even with base path
   LRelativePath := LRelativePath.Substring(LBasePath.Length);
   if LRelativePath.StartsWith(PathDelim) then
     LRelativePath := LRelativePath.Substring(string(PathDelim).Length);
 
-  LFullPath := TPath.Combine(RootFolder, LRelativePath);
+  LFullPath := RootFolder;
+  LFullPath := SmartConcat([LFullPath, LRelativePath], PathDelim);
 
   if CheckFilters(LFullPath) then
   begin
@@ -232,6 +225,7 @@ begin
       ServeFileContent(LFullPath, Result)
     else if TDirectory.Exists(LFullPath) then
     begin
+      LIndexFileFullPath := '';
       if DirectoryHasIndexFile(LFullPath, LIndexFileFullPath) then
         ServeFileContent(LIndexFileFullPath, Result)
       else
@@ -342,7 +336,8 @@ end;
 function RootFolderAttribute.ExpandMacros(const AString: string): string;
 begin
   Result := AString;
-  Result := Result.Replace('{bin}', ExtractFilePath(ParamStr(0)));
+  Result := Result.Replace('{bin}', ExtractFilePath(ParamStr(0)))
+                  .Replace('\\', '\', [rfReplaceAll]);
 end;
 
 { ContentTypeForFileExt }

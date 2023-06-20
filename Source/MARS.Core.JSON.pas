@@ -113,6 +113,12 @@ type
     function GetValue(const Index: Integer): TJSONValue; inline;
     {$endif}
   public
+    function AddObject(): TJSONObject; overload;
+    function AddObject(const AElement: TJSONObject): TJSONArray; overload;
+    function Add(const AElement: Int64): TJSONArray; overload;
+    function Add(const AElement: TDateTime): TJSONArray; overload;
+    function Add(const AElement: TDateTime; const AOptions: TMARSJSONSerializationOptions): TJSONArray; overload;
+
     function ToArrayOfRecord<T: record>(): TArray<T>;
     procedure FromArrayOfRecord<T: record>(const AArray: TArray<T>;
       const AOptions: TMARSJSONSerializationOptions;
@@ -148,6 +154,9 @@ type
 {$endif}
     function GetExactPairName(const ACaseInsensitiveName: string): string;
   public
+    function AddObject(const AName: string): TJSONObject;
+    function AddArray(const AName: string): TJSONArray;
+
     function ReadStringValue(const AName: string; const ADefault: string = ''): string;
     function ReadIntegerValue(const AName: string; const ADefault: Integer = 0): Integer;
 {$ifdef DelphiXE6_UP}
@@ -242,7 +251,8 @@ type
     class function JSONToRecord(const ARecordType: TRttiType; const AJSON: TJSONObject;
       const AFilterProc: TToRecordFilterProc = nil): TValue; overload;
 
-    class function TValueToJSONValue(const AValue: TValue; const AOptions: TMARSJSONSerializationOptions): TJSONValue;
+    class function TValueToJSONValue(const AValue: TValue; const AOptions: TMARSJSONSerializationOptions): TJSONValue; overload;
+    class function TValueToJSONValue(const AValue: TValue): TJSONValue; overload;
     class procedure TJSONValueToTValue(const AValue: TJSONValue; const ADesiredType: TRttiType; var ATValue: TValue);
   end;
 
@@ -257,7 +267,7 @@ type
   {$ELSE}
   var DefaultMARSJSONSerializationOptions: TMARSJSONSerializationOptions = (
     SkipEmptyValues: True;
-    DateIsUTC: True;
+    DateIsUTC: True; // check the initialization section of this unit!
     DateFormat: ISO8601;
   );
   {$ENDIF}
@@ -265,9 +275,8 @@ type
 implementation
 
 uses
-    DateUtils, Variants, StrUtils
-  , MARS.Core.Utils
-  , MARS.Rtti.Utils
+  System.DateUtils, System.TimeSpan, System.Variants, System.StrUtils
+, MARS.Core.Utils, MARS.Rtti.Utils
 ;
 
 class function TJSONObjectHelper.TValueToJSONValue(
@@ -278,12 +287,12 @@ var
   LTypeName: string;
   LVariantValue: Variant;
 begin
+  if AValue.IsEmpty and not AValue.IsArray then
+    exit(TJSONNull.Create);
+
   LTypeName := string(AValue.TypeInfo^.Name);
 
-  if AValue.IsEmpty and not AValue.IsArray then
-    Result := TJSONNull.Create
-
-  else if (AValue.Kind in [tkString, tkUString, tkChar, {$ifdef DelphiXE6_UP} tkWideChar, {$endif} tkLString, tkWString])  then
+  if (AValue.Kind in [tkString, tkUString, tkChar, {$ifdef DelphiXE6_UP} tkWideChar, {$endif} tkLString, tkWString])  then
     Result := TJSONString.Create(AValue.AsString)
 
   else if IsDictionaryOfStringAndT(LTypeName) then
@@ -331,7 +340,7 @@ begin
   begin
     LVariantValue := AValue.AsVariant;
     case VarType(LVariantValue) of
-      varSmallint, varInteger, varShortInt, varByte, varWord, varUInt32, varUInt64:
+      varSmallint, varInteger, varShortInt, varByte, varWord {$ifdef Delphi11Alexandria_UP}, varUInt32, varUInt64 {$ifend}:
         Result := TValueToJSONValue(StrToInt(VarToStr(LVariantValue)), AOptions);
       varSingle, varDouble:
         Result := TValueToJSONValue(StrToFloat(VarToStr(LVariantValue)), AOptions);
@@ -502,6 +511,17 @@ end;
 class function TJSONArrayHelper.ArrayOfObjectToJSON<T>(const AArray: TArray<T>): TJSONArray;
 begin
   Result := ArrayOfObjectToJSON<T>(AArray);
+end;
+
+function TJSONArrayHelper.AddObject: TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  AddObject(Result);
+end;
+
+function TJSONArrayHelper.AddObject(const AElement: TJSONObject): TJSONArray;
+begin
+  Result := Self.Add(AElement);
 end;
 
 class function TJSONArrayHelper.ArrayOfObjectToJSON<T>(const AArray: TArray<T>;
@@ -827,6 +847,18 @@ begin
     Result := LValue.AsDouble;
 end;
 
+function TJSONObjectHelper.AddArray(const AName: string): TJSONArray;
+begin
+  Result := TJSONArray.Create;
+  Self.AddPair(AName, Result);
+end;
+
+function TJSONObjectHelper.AddObject(const AName: string): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Self.AddPair(AName, Result);
+end;
+
 function TJSONObjectHelper.DeletePair(const AName: string): Boolean;
 var
   LPair: TJSONPair;
@@ -835,7 +867,8 @@ begin
   if Values[AName] <> nil then
   begin
     LPair := RemovePair(AName);
-    if LPair.Owned then
+    if {$ifdef Delphi10Sydney_UP} LPair.Owned {$else} LPair.GetOwned {$ifend}
+    then
       FreeAndNil(LPair);
     Result := True;
   end;
@@ -1326,6 +1359,7 @@ var
   LJSONName: string;
   LAssignedValuesField: TRttiField;
   LAssignedValues: TArray<string>;
+  LDetails: string;
 
   function GetRecordFilterProc: TToRecordFilterProc;
   var
@@ -1379,8 +1413,17 @@ begin
       begin
         if ReadValue(LJSONName, LMember.GetRttiType, True, LValue) then
         begin
+          try
           LMember.SetValue(LRecordInstance, LValue);
           LAssignedValues := LAssignedValues + [LMember.Name];
+          except on E: EInvalidCast do
+            begin
+              LDetails := LMember.Name + ' (type ' + LMember.GetRttiTypeName +')'
+                + ' incompatible value: '
+                + LValue.ToString + ' (kind ' + TRttiEnumerationType.GetName<TTypeKind>(LValue.Kind) + ')';
+              raise EInvalidCast.Create(E.Message + sLineBreak + LDetails);
+            end;
+          end;
         end
         else
           LMember.SetValue(LRecordInstance, TValue.Empty);
@@ -1394,6 +1437,12 @@ end;
 function TJSONObjectHelper.ToRecord<T>(const AFilterProc: TToRecordFilterProc = nil): T;
 begin
   Result := ToRecord(TRttiContext.Create.GetType(TypeInfo(T)), AFilterProc).AsType<T>;
+end;
+
+class function TJSONObjectHelper.TValueToJSONValue(
+  const AValue: TValue): TJSONValue;
+begin
+  Result := TValueToJSONValue(AValue, DefaultMARSJSONSerializationOptions);
 end;
 
 procedure TJSONObjectHelper.WriteArrayValue(const AName: string;
@@ -1517,6 +1566,24 @@ begin
   WriteInt64Value(AName, DateTimeToUnix(AValue));
 end;
 
+function TJSONArrayHelper.Add(const AElement: TDateTime): TJSONArray;
+begin
+  Result := Self.Add(DateToJSON(AElement));
+end;
+
+function TJSONArrayHelper.Add(const AElement: TDateTime;
+  const AOptions: TMARSJSONSerializationOptions): TJSONArray;
+begin
+  Result := Self.Add(DateToJSON(AElement, AOptions));
+end;
+
+function TJSONArrayHelper.Add(const AElement: Int64): TJSONArray;
+begin
+  Result := Self;
+  Self.AddElement(TJSONNumber.Create(AElement));
+end;
+
+
 { JSONNameAttribute }
 
 constructor JSONNameAttribute.Create(const AName: string);
@@ -1524,5 +1591,8 @@ begin
   inherited Create;
   FName := AName;
 end;
+
+initialization
+  DefaultMARSJSONSerializationOptions.DateIsUTC := Trunc(TTimeZone.Local.GetUTCOffset(Now).TotalMinutes) = 0;
 
 end.

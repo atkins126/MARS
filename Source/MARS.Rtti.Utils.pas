@@ -27,6 +27,7 @@ type
     function GetValue(AInstance: Pointer): TValue;
 
     function GetRttiType: TRttiType;
+    function GetRttiTypeName: string;
     procedure SetValue(AInstance: Pointer; const AValue: TValue);
 
     function HasAttribute<T: TCustomAttribute>(const AInherited: Boolean = False): Boolean; overload; inline;
@@ -114,7 +115,7 @@ type
 
   TRecord<R: record> = class
   public
-    class procedure ToDataSet(const ARecord: R; const ADataSet: TDataSet; const AAppend: Boolean = False);
+    class procedure ToDataSet(const ARecord: R; const ADataSet: TDataSet; const AAppend: Boolean = False; const ABeforePost: TProc = nil);
     class procedure FromDataSet(var ARecord: R; const ADataSet: TDataSet);
     class function DataSetToArray(const ADataSet: TDataSet): TArray<R>;
     class procedure SetFieldByName(var ARecord: R; const AFieldName: string; const AValue: TValue);
@@ -414,6 +415,16 @@ begin
     Result := TRttiParameter(Self).ParamType
   else if Self is TRttiType then
     Result := TRttiType(Self);
+end;
+
+function TRttiObjectHelper.GetRttiTypeName: string;
+var
+  LType: TRttiType;
+begin
+  Result := '';
+  LType := GetRttiType;
+  if Assigned(LType) then
+    Result := LType.Name;
 end;
 
 function TRttiObjectHelper.HasAttribute<T>(
@@ -1199,7 +1210,7 @@ begin
 end;
 
 class procedure TRecord<R>.ToDataSet(const ARecord: R; const ADataSet: TDataSet;
-  const AAppend: Boolean);
+  const AAppend: Boolean; const ABeforePost: TProc);
 var
   LRecordType: TRttiType;
   LRecordField: TRttiField;
@@ -1229,6 +1240,10 @@ begin
           LDataSetField.Clear;
       end;
     end;
+
+    if Assigned(ABeforePost) then
+      ABeforePost();
+
     ADataSet.Post;
   except
     ADataSet.Cancel;
