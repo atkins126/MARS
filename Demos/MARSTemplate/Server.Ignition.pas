@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity - REST Library
+  Copyright 2016-2023, MARS-Curiosity - REST Library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -10,7 +10,8 @@ unit Server.Ignition;
 interface
 
 uses
-  System.Classes, System.SysUtils, System.RTTI, System.StrUtils, System.ZLib
+  System.Classes, System.SysUtils, System.RTTI, System.StrUtils
+{$IFDEF MARS_ZLIB}, System.ZLib {$ENDIF}
 , MARS.Core.Engine
 ;
 

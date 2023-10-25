@@ -1,6 +1,5 @@
 program MARSTestsProject;
 
-{.$DEFINE TESTINSIGHT}
 
 {$IFNDEF TESTINSIGHT}
 {$APPTYPE CONSOLE}
@@ -10,9 +9,9 @@ program MARSTestsProject;
 
 uses
   SysUtils,
-{$IFDEF TESTINSIGHT}
+  {$IFDEF TESTINSIGHT}
   TestInsight.DUnitX,
-{$ENDIF}
+  {$ENDIF }
   DUnitX.TestFramework,
   DUnitX.Loggers.Console,
   Tests.Core in 'Tests.Core.pas',
@@ -20,7 +19,8 @@ uses
   Tests.MessageBodyReaders in 'Tests.MessageBodyReaders.pas',
   Tests.Records.Types in 'Tests.Records.Types.pas',
   Tests.FireDAC in 'Tests.FireDAC.pas',
-  Tests.JWT in 'Tests.JWT.pas';
+  Tests.JWT in 'Tests.JWT.pas',
+  Tests.Data in 'Tests.Data.pas';
 
 {$IFDEF TESTINSIGHT}
 begin
@@ -29,7 +29,7 @@ begin
 var LResults: IRunResults;
 begin
   LResults := TDUnitX.CreateRunner([TDUnitXConsoleLogger.Create()]).Execute;
-  if (LResults.ErrorCount > 0) or (LResults.FailureCount > 0) then
+//  if (LResults.ErrorCount > 0) or (LResults.FailureCount > 0) then
     Readln;
 {$ENDIF}
 end.

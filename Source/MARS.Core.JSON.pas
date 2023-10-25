@@ -88,6 +88,7 @@ type
 //    joIndentCaseLower
 //    joIndentCaseUpper
 //    joIndentCasePreserve
+    UseDisplayFormatForNumericFields: Boolean;
   end;
 
   JSONIncludeEmptyValuesAttribute = class(TCustomAttribute);
@@ -269,6 +270,7 @@ type
     SkipEmptyValues: True;
     DateIsUTC: True; // check the initialization section of this unit!
     DateFormat: ISO8601;
+    UseDisplayFormatForNumericFields: False;
   );
   {$ENDIF}
 
@@ -1037,9 +1039,9 @@ begin
         {$else}
           if LValue.IsType<TValue> and (not LValue.IsArray) then
         {$endif}
-          WriteTValue(LJSONName, LValue.AsType<TValue>) //unboxing TValue from TValue
+          WriteTValue(LJSONName, LValue.AsType<TValue>, AOptions) //unboxing TValue from TValue
         else
-          WriteTValue(LJSONName, LValue);
+          WriteTValue(LJSONName, LValue, AOptions);
       end;
     end;
   end;
