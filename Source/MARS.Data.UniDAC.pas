@@ -1,8 +1,9 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
+
 unit MARS.Data.UniDAC;
 
 {$I MARS.inc}
@@ -10,22 +11,23 @@ unit MARS.Data.UniDAC;
 interface
 
 uses
-    System.Classes, System.SysUtils, Generics.Collections, Rtti, Data.DB
-  // Devart UniDAC
-  , Uni, UniProvider, VirtualTable
-  // MARS
-  , MARS.Core.Application
-  , MARS.Core.Attributes
-  , MARS.Core.Classes
-  , MARS.Core.Declarations
-  , MARS.Core.JSON
-  , MARS.Core.MediaType
-  , MARS.Core.Registry
-  , MARS.Core.Token
-  , MARS.Core.URL
-  , MARS.Utils.Parameters
-  , MARS.Core.Activation.Interfaces
-  , MARS.Data.UniDAC.Utils
+  System.Classes, System.SysUtils, Generics.Collections, Rtti, Data.DB
+// Devart UniDAC
+, Uni, UniProvider, VirtualTable
+// MARS
+, MARS.Core.Application.Interfaces
+, MARS.Core.Attributes
+, MARS.Core.Classes
+, MARS.Core.Declarations
+, MARS.Core.Exceptions
+, MARS.Core.JSON
+, MARS.Core.MediaType
+, MARS.Core.Registry
+, MARS.Core.Token
+, MARS.Core.URL
+, MARS.Utils.Parameters
+, MARS.Core.Activation.Interfaces
+, MARS.Data.UniDAC.Utils
 ;
 
 type
@@ -162,7 +164,6 @@ implementation
 uses
   StrUtils, Variants, DBAccess
   , MARS.Core.Utils
-  , MARS.Core.Exceptions
   , MARS.Data.Utils
   , MARS.Rtti.Utils
   , MARS.Data.UniDAC.InjectionService

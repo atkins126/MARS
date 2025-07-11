@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -8,12 +8,13 @@ unit MARS.Metadata.Engine.Resource;
 interface
 
 uses
-    MARS.Core.Registry
-  , MARS.Core.Attributes
-  , MARS.Core.MediaType
-  , MARS.Core.JSON
-  , MARS.Metadata
-  , MARS.Core.Application
+  MARS.Core.Registry
+, MARS.Core.Attributes
+, MARS.Core.Exceptions
+, MARS.Core.MediaType
+, MARS.Core.JSON
+, MARS.Metadata
+, MARS.Core.Application.Interfaces
 ;
 
 type

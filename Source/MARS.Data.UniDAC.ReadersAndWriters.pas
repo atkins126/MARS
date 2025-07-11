@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -24,6 +24,7 @@ uses
   , MARS.Core.Utils
   , MARS.Data.Utils
   , MARS.Data.UniDAC.Utils
+  , MARS.Core.RequestAndResponse.Interfaces
 ;
 
 type

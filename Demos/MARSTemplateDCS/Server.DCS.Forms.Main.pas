@@ -44,7 +44,10 @@ implementation
 
 uses
   StrUtils
-, MARS.Core.URL, MARS.Core.Engine, MARS.Core.Application, MARS.Core.Registry
+, MARS.Core.URL
+, MARS.Core.Engine, MARS.Core.Engine.Interfaces
+, MARS.Core.Application.Interfaces
+, MARS.Core.Registry
 , MARS.Core.Registry.Utils
 , Server.Ignition
 ;
@@ -70,7 +73,7 @@ begin
   try
     ATreeview.Items.Clear;
     TMARSEngineRegistry.Instance.EnumerateEngines(
-      procedure (AName: string; AEngine: TMARSEngine)
+      procedure (AName: string; AEngine: IMARSEngine)
       var
         LEngineItem: TTreeNode;
       begin
@@ -79,7 +82,7 @@ begin
         );
 
         AEngine.EnumerateApplications(
-          procedure (AName: string; AApplication: TMARSApplication)
+          procedure (AName: string; AApplication: IMARSApplication)
           var
             LApplicationItem: TTreeNode;
           begin

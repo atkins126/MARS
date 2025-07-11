@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -128,7 +128,7 @@ begin
   begin
     if LAttribute is JSONIncludeEmptyValuesAttribute then
     begin
-      LSerializationOptions.SkipEmptyValues := False;
+      LSerializationOptions.IncludeEmptyOrNullValues;
       Break;
     end;
   end;
@@ -163,7 +163,7 @@ begin
   begin
     if LAttribute is JSONIncludeEmptyValuesAttribute then
     begin
-      LSerializationOptions.SkipEmptyValues := False;
+      LSerializationOptions.IncludeEmptyOrNullValues;
       Break;
     end;
   end;
@@ -289,19 +289,21 @@ var
   LJSONObj: TJSONObject;
   LJSONWriter: TJSONValueWriter;
   LSerializationOptions: TMARSJSONSerializationOptions;
+  LAttribute: TCustomAttribute;
 begin
   if not AValue.IsEmpty then
   begin
     LSerializationOptions := DefaultMARSJSONSerializationOptions;
 
-    for var LAttribute in AActivation.MethodAttributes do
-    begin
-      if LAttribute is JSONIncludeEmptyValuesAttribute then
+    if Assigned(AActivation) then
+      for LAttribute in AActivation.MethodAttributes do
       begin
-        LSerializationOptions.SkipEmptyValues := False;
-        Break;
+        if LAttribute is JSONIncludeEmptyValuesAttribute then
+        begin
+          LSerializationOptions.IncludeEmptyOrNullValues;
+          Break;
+        end;
       end;
-    end;
 
     LJSONObj := TJSONObject.RecordToJSON(AValue, LSerializationOptions);
     try
@@ -333,14 +335,15 @@ begin
 
   LSerializationOptions := DefaultMARSJSONSerializationOptions;
 
-  for LAttribute in AActivation.MethodAttributes do
-  begin
-    if LAttribute is JSONIncludeEmptyValuesAttribute then
+  if Assigned(AActivation) then
+    for LAttribute in AActivation.MethodAttributes do
     begin
-      LSerializationOptions.SkipEmptyValues := False;
-      Break;
+      if LAttribute is JSONIncludeEmptyValuesAttribute then
+      begin
+        LSerializationOptions.IncludeEmptyOrNullValues;
+        Break;
+      end;
     end;
-  end;
 
   LJSONArray := TJSONArray.Create;
   try

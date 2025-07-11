@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -15,8 +15,8 @@ uses
 
   // Net
   , System.Net.URLClient, System.Net.HttpClient, System.Net.HttpClientComponent
-, System.Net.Mime
-  ;
+  , System.Net.Mime
+;
 
 type
   [ComponentPlatformsAttribute(pidAllPlatforms)]

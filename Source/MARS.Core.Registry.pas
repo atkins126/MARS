@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -36,6 +36,10 @@ type
     class destructor ClassDestroy;
   end;
 
+  // Shortcuts
+  procedure MARSRegister(const AResource: TClass; const AConstructorFunc: TMARSConstructorFunc = nil); overload;
+  procedure MARSRegister(const AResources: TArray<TClass>); overload;
+
 {$ifdef DelphiXE}
 type
   TObjectHelper = class helper for TObject
@@ -60,12 +64,23 @@ begin
 end;
 {$endif}
 
+procedure MARSRegister(const AResource: TClass; const AConstructorFunc: TMARSConstructorFunc);
+begin
+  TMARSResourceRegistry.Instance.RegisterResource(AResource, AConstructorFunc);
+end;
+
+procedure MARSRegister(const AResources: TArray<TClass>);
+begin
+  TMARSResourceRegistry.Instance.RegisterResources(AResources);
+end;
+
 { TMARSResourceRegistry }
 
 function TMARSResourceRegistry.GetResourceInstance<T>(const AContext: TValue): T;
 var
   LInfo: TMARSConstructorInfo;
 begin
+  Result := nil;
   if Self.TryGetValue(T.ClassName, LInfo) then
   begin
     if LInfo.ConstructorFunc <> nil then

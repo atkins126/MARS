@@ -1,20 +1,24 @@
 (*
-  Copyright 2016-2023, MARS-Curiosity - REST Library
+  Copyright 2025, MARS-Curiosity - REST Library
 
   Home: https://github.com/andrea-magni/MARS
 *)
+
 library MARSTemplateServerApacheModule;
 
 uses
   {$IFDEF MSWINDOWS}
-  Winapi.ActiveX, System.Win.ComObj,
+  Winapi.ActiveX,
+  System.Win.ComObj,
   {$ENDIF }
   Web.WebBroker,
   Web.ApacheApp,
   Web.HTTPD24Impl,
   Server.WebModule in 'Server.WebModule.pas' {ServerWebModule: TWebModule},
   Server.Ignition in 'Server.Ignition.pas',
-  Server.Resources in 'Server.Resources.pas';
+  Server.Resources.HelloWorld in 'Server.Resources.HelloWorld.pas',
+  Server.Resources.OpenAPI in 'Server.Resources.OpenAPI.pas',
+  Server.Resources.Token in 'Server.Resources.Token.pas';
 
 {$R *.res}
 

@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -21,6 +21,8 @@ uses
 
 type
   MARSAttribute = class(TCustomAttribute);
+
+  NoLogAttribute = class(MARSAttribute);
 
   PathAttribute = class(MARSAttribute)
   private
@@ -108,6 +110,7 @@ type
 
   InvocationEventAttribute = class(MARSAttribute);
 
+  AfterContextCleanupAttribute = class(InvocationEventAttribute);
   BeforeInvokeAttribute = class(InvocationEventAttribute);
   AfterInvokeAttribute = class(InvocationEventAttribute);
   InvokeErrorAttribute = class(InvocationEventAttribute);

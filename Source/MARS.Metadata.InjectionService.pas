@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -11,10 +11,10 @@ interface
 
 uses
   Classes, SysUtils, Rtti, Generics.Collections
-  , MARS.Core.Injection
-  , MARS.Core.Injection.Interfaces
-  , MARS.Core.Injection.Types
-  , MARS.Core.Activation.Interfaces
+, MARS.Core.Injection
+, MARS.Core.Injection.Interfaces
+, MARS.Core.Injection.Types
+, MARS.Core.Activation.Interfaces
 ;
 
 type
@@ -28,10 +28,11 @@ type
 implementation
 
 uses
-    MARS.Rtti.Utils, MARS.Core.Attributes
-  , MARS.Core.Engine, MARS.Core.Application
-  , MARS.Metadata
-  , MARS.Metadata.Reader
+  MARS.Rtti.Utils, MARS.Core.Attributes
+, MARS.Core.Engine.Interfaces
+, MARS.Core.Application.Interfaces
+, MARS.Metadata
+, MARS.Metadata.Reader
 ;
 
 { TMARSMetadataInjectionService }

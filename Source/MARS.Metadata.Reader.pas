@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -9,17 +9,20 @@ interface
 
 uses
   Classes, SysUtils, Rtti, TypInfo
-, MARS.Metadata, MARS.Core.Engine, MARS.Core.Application, MARS.Core.Registry.Utils
+, MARS.Metadata
+, MARS.Core.Engine.Interfaces
+, MARS.Core.Application.Interfaces
+, MARS.Core.Registry.Utils
 ;
 
 type
   TMARSMetadataReader=class
   private
-    FEngine: TMARSEngine;
+    FEngine: IMARSEngine;
     FMetadata: TMARSEngineMetadata;
   protected
-    procedure ReadApplication(const AApplication: TMARSApplication); virtual;
-    procedure ReadResource(const AApplication: TMARSApplication;
+    procedure ReadApplication(const AApplication: IMARSApplication); virtual;
+    procedure ReadResource(const AApplication: IMARSApplication;
       const AApplicationMetadata: TMARSApplicationMetadata;
       const AResourcePath: string; AResourceInfo: TMARSConstructorInfo); virtual;
     procedure ReadMethod(const AResourceMetadata: TMARSResourceMetadata;
@@ -28,12 +31,12 @@ type
       const AMethodMetadata: TMARSMethodMetadata;
       const AParameter: TRttiParameter; const AMethod: TRttiMethod); virtual;
   public
-    constructor Create(const AEngine: TMARSEngine; const AReadImmediately: Boolean = True); virtual;
+    constructor Create(const AEngine: IMARSEngine; const AReadImmediately: Boolean = True); virtual;
     destructor Destroy; override;
 
     procedure Read; virtual;
 
-    property Engine: TMARSEngine read FEngine;
+    property Engine: IMARSEngine read FEngine;
     property Metadata: TMARSEngineMetadata read FMetadata;
   end;
 
@@ -47,7 +50,7 @@ uses
 
 { TMARSMetadataReader }
 
-constructor TMARSMetadataReader.Create(const AEngine: TMARSEngine; const AReadImmediately: Boolean);
+constructor TMARSMetadataReader.Create(const AEngine: IMARSEngine; const AReadImmediately: Boolean);
 begin
   inherited Create;
   FEngine := AEngine;
@@ -69,7 +72,7 @@ begin
   Metadata.Path := Engine.BasePath;
 
   Engine.EnumerateApplications(
-    procedure (APath: string; AApplication: TMARSApplication)
+    procedure (APath: string; AApplication: IMARSApplication)
     begin
       ReadApplication(AApplication);
     end
@@ -78,7 +81,7 @@ begin
 end;
 
 procedure TMARSMetadataReader.ReadApplication(
-  const AApplication: TMARSApplication);
+  const AApplication: IMARSApplication);
 var
   LApplicationMetadata: TMARSApplicationMetadata;
 begin
@@ -237,7 +240,7 @@ begin
   );
 end;
 
-procedure TMARSMetadataReader.ReadResource(const AApplication: TMARSApplication;
+procedure TMARSMetadataReader.ReadResource(const AApplication: IMARSApplication;
   const AApplicationMetadata: TMARSApplicationMetadata;
   const AResourcePath: string; AResourceInfo: TMARSConstructorInfo);
 var

@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity - REST Library
+  Copyright 2025, MARS-Curiosity - REST Library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -9,7 +9,7 @@ interface
 
 uses
     Rtti
-  , MARS.Core.Engine
+  , MARS.Core.Engine.Interfaces
 ;
 
 type

@@ -1,8 +1,9 @@
 (*
-  Copyright 2016-2023, MARS-Curiosity - REST Library
+  Copyright 2025, MARS-Curiosity - REST Library
 
   Home: https://github.com/andrea-magni/MARS
 *)
+
 program MARSTemplateServerDCSFMXApplication;
 
 uses
@@ -10,7 +11,9 @@ uses
   FMX.Forms,
   Server.FMX.Forms.Main in 'Server.FMX.Forms.Main.pas' {MainForm},
   Server.Ignition in 'Server.Ignition.pas',
-  Server.Resources in 'Server.Resources.pas';
+  Server.Resources.HelloWorld in 'Server.Resources.HelloWorld.pas',
+  Server.Resources.OpenAPI in 'Server.Resources.OpenAPI.pas',
+  Server.Resources.Token in 'Server.Resources.Token.pas';
 
 {$R *.res}
 

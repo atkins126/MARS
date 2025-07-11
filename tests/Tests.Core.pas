@@ -41,6 +41,14 @@ type
     [Test] procedure AssignedValues;
 
     [Test] procedure Variants;
+
+    [Test] procedure SkipEmptyBooleans;
+    [Test] procedure SkipEmptyNumbers;
+    [Test] procedure SkipEmptyStrings;
+    [Test] procedure SkipNullValues;
+    [Test] procedure SkipEmptyObjects;
+    [Test] procedure SkipEmptyArrays;
+    [Test] procedure CustomDateTimeValues;
   end;
 
   [TestFixture('JSONToRecord')]
@@ -297,6 +305,22 @@ begin
   Assert.AreEqual(LRecord.Name, LJSONObj.ReadStringValue('Name'));
 end;
 
+procedure TMARSRecordToJSONTest.CustomDateTimeValues;
+var
+  LRecord: TRecordWithCustomDate;
+  LJSONObj: TJSONObject;
+  LJSONString: string;
+begin
+  LRecord := Default(TRecordWithCustomDate);
+
+  LRecord.Date := EncodeDateTime(1982, 05, 24, 13, 30, 12, 345);
+
+  LJSONObj := TJSONObject.RecordToJSON<TRecordWithCustomDate>(LRecord);
+
+  Assert.IsNotNull(LJSONObj);
+  Assert.AreEqual('1982-05-24 13:30.12', LJSONObj.ReadStringValue('Date'));
+end;
+
 procedure TMARSRecordToJSONTest.JSONNameAttribute;
 var
   LJSONObj: TJSONObject;
@@ -309,6 +333,95 @@ begin
   Assert.IsNotNull(LJSONObj);
   Assert.AreEqual(LRecord.Name, LJSONObj.ReadStringValue('Surname'));
   Assert.AreEqual(LRecord.Surname, LJSONObj.ReadStringValue('Name'));
+end;
+
+procedure TMARSRecordToJSONTest.SkipEmptyArrays;
+begin
+  var LRecord: TArrayNamedIntegerRecord := Default(TArrayNamedIntegerRecord);
+  LRecord.Name := 'Test';
+  LRecord.Data := [];
+
+  var LOptions: TMARSJSONSerializationOptions := DefaultMARSJSONSerializationOptions;
+  LOptions.IncludeEmptyOrNullValues;
+  LOptions.SkipEmptyArrays := True;
+
+  var LJSONObj := TJSONObject.RecordToJSON<TArrayNamedIntegerRecord>(LRecord, LOptions);
+  Assert.IsNotNull(LJSONObj);
+
+  Assert.IsNull(LJSONObj.FindValue('Value'), 'LRecord.Data is an empty array and should not show up in JSON string');
+end;
+
+procedure TMARSRecordToJSONTest.SkipEmptyBooleans;
+begin
+  var LRecord : TPrimitiveTypesRecord := Default(TPrimitiveTypesRecord);
+  LRecord.ABoolean := False;
+
+  var LOptions: TMARSJSONSerializationOptions := DefaultMARSJSONSerializationOptions;
+  LOptions.IncludeEmptyOrNullValues;
+  LOptions.SkipEmptyBooleans := True;
+
+  var LJSONObj := TJSONObject.RecordToJSON<TPrimitiveTypesRecord>(LRecord, LOptions);
+  Assert.IsNotNull(LJSONObj);
+
+  Assert.IsNull(LJSONObj.FindValue('ABoolean'), 'LRecord.ABoolean is false and should not show up in JSON string');
+end;
+
+procedure TMARSRecordToJSONTest.SkipEmptyNumbers;
+begin
+  var LRecord := TNamedIntegerRecord.Create('The answer', 0);
+
+  var LOptions: TMARSJSONSerializationOptions := DefaultMARSJSONSerializationOptions;
+  LOptions.IncludeEmptyOrNullValues;
+  LOptions.SkipEmptyNumbers := True;
+
+  var LJSONObj := TJSONObject.RecordToJSON<TNamedIntegerRecord>(LRecord, LOptions);
+  Assert.IsNotNull(LJSONObj);
+
+  Assert.IsNull(LJSONObj.FindValue('Value'), 'LRecord.Value is zero and should not show up in JSON string');
+end;
+
+procedure TMARSRecordToJSONTest.SkipEmptyObjects;
+begin
+  var LObj: TObject := TObject.Create;
+  var LRecord := TRecordWithObject.Create('test1', LObj);
+
+  var LOptions: TMARSJSONSerializationOptions := DefaultMARSJSONSerializationOptions;
+  LOptions.IncludeEmptyOrNullValues;
+  LOptions.SkipEmptyObjects := True;
+
+  var LJSONObj := TJSONObject.RecordToJSON<TRecordWithObject>(LRecord, LOptions);
+  Assert.IsNotNull(LJSONObj);
+
+  Assert.IsNull(LJSONObj.FindValue('Instance'), 'LRecord.Instance is an empty object and should not show up in JSON string');
+end;
+
+procedure TMARSRecordToJSONTest.SkipEmptyStrings;
+begin
+  var LRecord := TNamedIntegerRecord.Create('', 42);
+
+  var LOptions: TMARSJSONSerializationOptions := DefaultMARSJSONSerializationOptions;
+  LOptions.IncludeEmptyOrNullValues;
+  LOptions.SkipEmptyStrings := True;
+
+  var LJSONObj := TJSONObject.RecordToJSON<TNamedIntegerRecord>(LRecord, LOptions);
+  Assert.IsNotNull(LJSONObj);
+
+  Assert.IsNull(LJSONObj.FindValue('Name'), 'LRecord.Name is empty and should not show up in JSON string');
+end;
+
+procedure TMARSRecordToJSONTest.SkipNullValues;
+begin
+  var LObj: TObject := nil;
+  var LRecord := TRecordWithObject.Create('test1', LObj);
+
+  var LOptions: TMARSJSONSerializationOptions := DefaultMARSJSONSerializationOptions;
+  LOptions.IncludeEmptyOrNullValues;
+  LOptions.SkipNullValues := True;
+
+  var LJSONObj := TJSONObject.RecordToJSON<TRecordWithObject>(LRecord, LOptions);
+  Assert.IsNotNull(LJSONObj);
+
+  Assert.IsNull(LJSONObj.FindValue('Instance'), 'LRecord.Instance is nil and should not show up in JSON string');
 end;
 
 procedure TMARSRecordToJSONTest.Variants;

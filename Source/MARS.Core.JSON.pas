@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -71,9 +71,14 @@ type
   TMARSJSONSerializationOptions = TJsonOptions;
   {$ELSE}
   TMARSJSONSerializationOptions = record
-    SkipEmptyValues: Boolean;
-//    joIgnoreEmptyStrings
-//    joIgnoreEmptyArrays
+  public
+    SkipEmptyStrings: Boolean;
+    SkipEmptyNumbers: Boolean;
+    SkipEmptyBooleans: Boolean;
+    SkipEmptyObjects: Boolean;
+    SkipEmptyArrays: Boolean;
+    SkipNullValues: Boolean;
+
     DateIsUTC: Boolean;
     DateFormat: TMARSJSONDateFormat;
 //    joDateFormatUnix
@@ -89,6 +94,10 @@ type
 //    joIndentCaseUpper
 //    joIndentCasePreserve
     UseDisplayFormatForNumericFields: Boolean;
+
+    function SkipEmptyValues: Boolean;
+    procedure IncludeEmptyOrNullValues;
+    procedure SkipAllEmptyOrNullValues;
   end;
 
   JSONIncludeEmptyValuesAttribute = class(TCustomAttribute);
@@ -120,8 +129,8 @@ type
     function Add(const AElement: TDateTime): TJSONArray; overload;
     function Add(const AElement: TDateTime; const AOptions: TMARSJSONSerializationOptions): TJSONArray; overload;
 
-    function ToArrayOfRecord<T: record>(): TArray<T>;
-    procedure FromArrayOfRecord<T: record>(const AArray: TArray<T>;
+    function ToArrayOfRecord<T{: record}>(): TArray<T>;
+    procedure FromArrayOfRecord<T{: record}>(const AArray: TArray<T>;
       const AOptions: TMARSJSONSerializationOptions;
       const AFilterProc: TToJSONFilterProc = nil);
 
@@ -129,6 +138,9 @@ type
       const AOptions: TMARSJSONSerializationOptions); overload;
     procedure FromArrayOfObject<T: class>(const AArray: TArray<T>); overload;
     function ForEach<T: TJSONValue>(const AFunc: TFunc<T,Boolean>): Integer;
+    // returns an array of TValue elements, covering primitive types (JSON representation returned
+    // for complex types like objects and arrays)
+    function ToArrayOfTValue: TArray<TValue>;
 
     {$ifndef DelphiXE6_UP}
     function GetEnumerator: TJSONArrayEnumerator;
@@ -137,9 +149,9 @@ type
     property Items[const Index: Integer]: TJSONValue read GetValue;
     {$endif}
 
-    class function ArrayOfRecordToJSON<T: record>(const AArray: TArray<T>;
+    class function ArrayOfRecordToJSON<T{: record}>(const AArray: TArray<T>;
       const AFilterProc: TToJSONFilterProc = nil): TJSONArray; overload;
-    class function ArrayOfRecordToJSON<T: record>(const AArray: TArray<T>;
+    class function ArrayOfRecordToJSON<T{: record}>(const AArray: TArray<T>;
       const AOptions: TMARSJSONSerializationOptions; const AFilterProc: TToJSONFilterProc = nil): TJSONArray; overload;
 
     class function ArrayOfObjectToJSON<T: class>(const AArray: TArray<T>): TJSONArray; overload;
@@ -173,8 +185,9 @@ type
       const ADesiredType: TRttiType; const ANameCaseSensitive: Boolean = True): TValue; overload;
     function ReadValue(const AName: string; const ADesiredType: TRttiType;
       const ANameCaseSensitive: Boolean; var AValue: TValue): Boolean; overload;
+    function ReadValue(const AName: string; const ADefault: TValue): TValue; overload;
     function ReadArrayValue(const AName: string): TJSONArray; overload; inline;
-    function ReadArrayValue<T: record>(const AName: string): TArray<T>; overload; inline;
+    function ReadArrayValue<T{: record}>(const AName: string): TArray<T>; overload; inline;
 
     function DeletePair(const AName: string): Boolean;
     procedure WriteStringValue(const AName: string; const AValue: string);
@@ -190,9 +203,9 @@ type
       const AOptions: TMARSJSONSerializationOptions); overload;
     procedure WriteTValue(const AName: string; const AValue: TValue); overload;
     procedure WriteArrayValue(const AName: string; const AArray: TJSONArray); overload; inline;
-    procedure WriteArrayValue<T: record>(const AName: string; const AArray: TArray<T>;
+    procedure WriteArrayValue<T{: record}>(const AName: string; const AArray: TArray<T>;
       const AOptions: TMARSJSONSerializationOptions); overload; inline;
-    procedure WriteArrayValue<T: record>(const AName: string; const AArray: TArray<T>); overload; inline;
+    procedure WriteArrayValue<T{: record}>(const AName: string; const AArray: TArray<T>); overload; inline;
 
 
     procedure FromObject(const AObject: TObject; const AFilterProc: TToJSONFilterProc = nil); overload;
@@ -201,11 +214,11 @@ type
     procedure ToObject<T: class>(const AInstance: TObject; const AFilterProc: TToObjectFilterProc = nil); overload;
     procedure ToObject(const AInstance: TObject; const AObjectType: TRttiType; const AFilterProc: TToObjectFilterProc = nil); overload;
 
-    procedure FromRecord<T: record>(ARecord: T;
+    procedure FromRecord<T{: record}>(ARecord: T;
       const AOptions: TMARSJSONSerializationOptions; const AFilterProc: TToJSONFilterProc = nil); overload;
     procedure FromRecord(const ARecord: TValue;
       const AOptions: TMARSJSONSerializationOptions; const AFilterProc: TToJSONFilterProc = nil); overload;
-    function ToRecord<T: record>(const AFilterProc: TToRecordFilterProc = nil): T; overload;
+    function ToRecord<T{: record}>(const AFilterProc: TToRecordFilterProc = nil): T; overload;
     function ToRecord(const ARecordType: TRttiType; const AFilterProc: TToRecordFilterProc = nil): TValue; overload;
 
 {$ifndef DelphiXE6_UP}
@@ -234,10 +247,10 @@ type
       const AOptions: TMARSJSONSerializationOptions): TObject; overload;
     class function JSONToObject(const AClassType: TClass; const AJSON: TJSONObject): TObject; overload;
 
-    class function RecordToJSON<T: record>(ARecord: T;
+    class function RecordToJSON<T{: record}>(ARecord: T;
       const AOptions: TMARSJSONSerializationOptions;
       const AFilterProc: TToJSONFilterProc = nil): TJSONObject; overload;
-    class function RecordToJSON<T: record>(ARecord: T;
+    class function RecordToJSON<T{: record}>(ARecord: T;
       const AFilterProc: TToJSONFilterProc = nil): TJSONObject; overload;
 
     class function RecordToJSON(const ARecord: TValue;
@@ -247,7 +260,7 @@ type
       const AFilterProc: TToJSONFilterProc = nil): TJSONObject; overload;
 
 
-    class function JSONToRecord<T: record>(const AJSON: TJSONObject;
+    class function JSONToRecord<T{: record}>(const AJSON: TJSONObject;
       const AFilterProc: TToRecordFilterProc = nil): T; overload;
     class function JSONToRecord(const ARecordType: TRttiType; const AJSON: TJSONObject;
       const AFilterProc: TToRecordFilterProc = nil): TValue; overload;
@@ -267,7 +280,12 @@ type
   var DefaultMARSJSONSerializationOptions: TJSONOptions = [joDateIsUTC, joDateFormatISO8601, joBytesFormatArray, joIndentCaseCamel];
   {$ELSE}
   var DefaultMARSJSONSerializationOptions: TMARSJSONSerializationOptions = (
-    SkipEmptyValues: True;
+    SkipEmptyStrings: True;
+    SkipEmptyNumbers: False;
+    SkipEmptyBooleans: True;
+    SkipEmptyObjects: True;
+    SkipEmptyArrays: True;
+    SkipNullValues: True;
     DateIsUTC: True; // check the initialization section of this unit!
     DateFormat: ISO8601;
     UseDisplayFormatForNumericFields: False;
@@ -277,7 +295,7 @@ type
 implementation
 
 uses
-  System.DateUtils, System.TimeSpan, System.Variants, System.StrUtils
+  System.DateUtils, System.TimeSpan, System.Variants, System.StrUtils, System.Math
 , MARS.Core.Utils, MARS.Rtti.Utils
 ;
 
@@ -361,9 +379,10 @@ begin
     end;
 //    Result := TValueToJSONValue( TValue.FromVariant(AValue.AsVariant), AOptions )
   end
+  else if (AValue.IsObject and (AValue.AsObject = nil)) then
+    Result := TJSONNull.Create
   else if (AValue.IsInstanceOf(TObject)) then
     Result := ObjectToJSON(AValue.AsObject, AOptions)
-
   else
     Result := TJSONString.Create(AValue.ToString);
 
@@ -510,6 +529,29 @@ begin
     Result := Result + [(LElement as TJSONObject).ToRecord<T>()]
 end;
 
+function TJSONArrayHelper.ToArrayOfTValue: TArray<TValue>;
+var
+  LIndex: Integer;
+  LItem: TJSONValue;
+begin
+  Result := [];
+  for LIndex := 0 to Count-1 do
+  begin
+    LItem := Items[Lindex];
+    if LItem is TJSONString then
+      Result := Result + [TJSONString(LItem).Value]
+    else if LItem is TJSONNumber then
+      Result := Result + [TJSONNumber(LItem).AsDouble]
+    else if LItem is TJSONBool then
+      Result := Result + [TJSONBool(LItem).AsBoolean]
+    else if LItem is TJSONNull then
+      Result := Result + [TValue.Empty]
+    else
+      Result := Result + [LItem.ToJSON]
+  end;
+
+end;
+
 class function TJSONArrayHelper.ArrayOfObjectToJSON<T>(const AArray: TArray<T>): TJSONArray;
 begin
   Result := ArrayOfObjectToJSON<T>(AArray);
@@ -585,7 +627,6 @@ procedure TJSONArrayHelper.FromArrayOfObject<T>(const AArray: TArray<T>;
   const AOptions: TMARSJSONSerializationOptions);
 var
   LObject: T;
-  LObj: TJSONObject;
 begin
   // clear all
   while Count > 0 do
@@ -869,7 +910,7 @@ begin
   if Values[AName] <> nil then
   begin
     LPair := RemovePair(AName);
-    if {$ifdef Delphi10Sydney_UP} LPair.Owned {$else} LPair.GetOwned {$ifend}
+    if {$ifdef Delphi10Rio_UP} LPair.Owned {$else} LPair.GetOwned {$ifend}
     then
       FreeAndNil(LPair);
     Result := True;
@@ -1092,6 +1133,7 @@ begin
   if Assigned(LPair) then
     Result := LPair.JsonValue.Value;
 end;
+
 
 function TJSONObjectHelper.ReadUnixTimeValue(const AName: string;
   const ADefault: TDateTime): TDateTime;
@@ -1529,33 +1571,48 @@ begin
 {$IFNDEF MARS_JSON_LEGACY}
   if AOptions.SkipEmptyValues then
   begin
-    // skip empty string
-    if Assigned(LValue) and (LValue is TJSONString) and (TJSONString(LValue).Value = '') then
+    if AOptions.SkipEmptyStrings
+      and ((LValue is TJSONString) and (TJSONString(LValue).Value = '')) then
     begin
       FreeAndNil(LValue);
       Exit;
     end;
 
-      // skip false boolean values
-    if Assigned(LValue) and (LValue is TJSONBool) and (TJSONBool(LValue).AsBoolean = false) then
+    if AOptions.SkipEmptyNumbers
+      and (LValue is TJSONNumber) and (SameValue(TJSONNumber(LValue).AsDouble, 0)) then
     begin
       FreeAndNil(LValue);
       Exit;
     end;
 
-    // skip empty arrays
-    if Assigned(LValue) and (LValue is TJSONArray) and (TJSONArray(LValue).Count = 0) then
+    if AOptions.SkipEmptyBooleans
+       and (LValue is TJSONBool) and (TJSONBool(LValue).AsBoolean = false) then
     begin
       FreeAndNil(LValue);
       Exit;
     end;
 
-    // skip empty objects
-    if Assigned(LValue) and (LValue is TJSONObject) and (TJSONObject(LValue).Count = 0) then
+    if AOptions.SkipEmptyArrays
+       and (LValue is TJSONArray) and (TJSONArray(LValue).Count = 0) then
     begin
       FreeAndNil(LValue);
       Exit;
     end;
+
+    if AOptions.SkipEmptyObjects
+      and (LValue is TJSONObject) and (TJSONObject(LValue).Count = 0) then
+    begin
+      FreeAndNil(LValue);
+      Exit;
+    end;
+
+    if AOptions.SkipNullValues
+       and (LValue is TJSONNull) then
+    begin
+      FreeAndNil(LValue);
+      Exit;
+    end;
+
   end;
 {$ENDIF}
 
@@ -1592,6 +1649,73 @@ constructor JSONNameAttribute.Create(const AName: string);
 begin
   inherited Create;
   FName := AName;
+end;
+
+function TJSONObjectHelper.ReadValue(const AName: string;
+  const ADefault: TValue): TValue;
+var
+  LJSONValue: TJSONValue;
+  LDesiredType: TRttiType;
+  LContext: TRttiContext;
+  LFound: Boolean;
+begin
+  Result := TValue.Empty;
+  LFound := TryGetValue<TJSONValue>(AName, LJSONValue);
+
+  if LFound then
+  begin
+    LContext := TRttiContext.Create;
+
+    LDesiredType := LContext.GetType(TypeInfo(String)); // fallback to string
+    if LJSONValue is TJSONString then
+      LDesiredType := LContext.GetType(TypeInfo(String))
+    else if LJSONValue is TJSONNumber then
+      LDesiredType := LContext.GetType(TypeInfo(Double))
+    else if LJSONValue is TJSONBool then
+      LDesiredType := LContext.GetType(TypeInfo(Boolean))
+    else if LJSONValue is TJSONArray then
+      raise ENotImplemented.Create('MARS ReadValue: conversion from JSONArray to TValue')
+    else if LJSONValue is TJSONObject then
+      raise ENotImplemented.Create('MARS ReadValue: conversion from JSONObject to TValue')
+    else if LJSONValue is TJSONNull then
+      Exit; // Result = Empty
+
+    TJSONValueToTValue(LJSONValue, LDesiredType, Result);
+  end;
+
+end;
+
+{ TMARSJSONSerializationOptions }
+
+procedure TMARSJSONSerializationOptions.IncludeEmptyOrNullValues;
+begin
+  SkipEmptyStrings := False;
+  SkipEmptyNumbers := False;
+  SkipEmptyBooleans := False;
+  SkipEmptyObjects := False;
+  SkipEmptyArrays := False;
+  SkipNullValues := False;
+end;
+
+procedure TMARSJSONSerializationOptions.SkipAllEmptyOrNullValues;
+begin
+  SkipEmptyStrings := True;
+  SkipEmptyNumbers := True;
+  SkipEmptyBooleans := True;
+  SkipEmptyObjects := True;
+  SkipEmptyArrays := True;
+  SkipNullValues := True;
+end;
+
+function TMARSJSONSerializationOptions.SkipEmptyValues: Boolean;
+begin
+  Result :=
+     SkipEmptyStrings
+  or SkipEmptyNumbers
+  or SkipEmptyBooleans
+  or SkipEmptyObjects
+  or SkipEmptyArrays
+  or SkipNullValues;
 end;
 
 initialization

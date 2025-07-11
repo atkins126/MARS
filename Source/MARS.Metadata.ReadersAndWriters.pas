@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -14,7 +14,7 @@ uses
   , MARS.Core.Declarations
   , MARS.Core.MediaType
   , MARS.Core.MessageBodyWriter
-  , MARS.Core.Engine
+  , MARS.Core.Engine.Interfaces
   , MARS.Core.JSON
   , MARS.Core.Activation.Interfaces
 ;

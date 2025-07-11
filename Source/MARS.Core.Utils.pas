@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -10,7 +10,7 @@ unit MARS.Core.Utils;
 interface
 
 uses
-  SysUtils, Classes, RTTI, SyncObjs
+  SysUtils, Classes, RTTI, SyncObjs, Math, Generics.Collections
 , REST.JSON
 , System.JSON
 , MARS.Core.JSON
@@ -18,8 +18,14 @@ uses
 ;
 
 type
+  TStringCompareFunc = reference to function (const AString1, AString2: string): Boolean;
   TStringArrayHelper = record helper for TArray<string>
     function RemoveDuplicates: TArray<string>;
+    function StartsWith(const AArray: TArray<string>; const AIgnoreCase: Boolean): Boolean; overload;
+    function StartsWith(const AArray: TArray<string>; const ACompareFunc: TStringCompareFunc): Boolean; overload;
+    function SubArray(const AStartIndex: Integer): TArray<string>; overload;
+    function SubArray(const AStartIndex: Integer; const ACount: Integer): TArray<string>; overload;
+    function Contains(const AString: string): Boolean;
   end;
 
   TFormParamFile = record
@@ -78,6 +84,11 @@ type
 {$ifndef DelphiXE6_UP}
   function DateToISO8601(const ADate: TDateTime; AInputIsUTC: Boolean = False): string;
   function ISO8601ToDate(const AISODate: string; AReturnUTC: Boolean = False): TDateTime;
+{$endif}
+
+{$ifndef DelphiXE8_UP}
+  // https://github.com/andrea-magni/MARS/issues/76#issuecomment-589954750
+  function TryISO8601ToDate(const AISODate: string; out Value: TDateTime; AReturnUTC: Boolean = True): Boolean;
 {$endif}
 
   function DateToJSON(const ADate: TDateTime): string; overload;
@@ -262,7 +273,7 @@ begin
 {$ENDIF}
 
     then
-      Result := LValueDateTime
+      Result := TValue.From<TDateTime>(LValueDateTime)
     else
       Result := AString;
   end;
@@ -415,6 +426,20 @@ end;
 function ISO8601ToDate(const AISODate: string; AReturnUTC: Boolean = False): TDateTime;
 begin
   Result := XMLTimeToDateTime(AISODate, AReturnUTC);
+end;
+{$endif}
+
+{$ifndef DelphiXE8_UP}
+// https://github.com/andrea-magni/MARS/issues/76#issuecomment-589954750
+function TryISO8601ToDate(const AISODate: string; out Value: TDateTime; AReturnUTC: Boolean = True): Boolean;
+begin
+  Result := False;
+  try
+    Value := ISO8601ToDate(AISODate, AReturnUTC);
+    Result := True
+  except
+
+  end;
 end;
 {$endif}
 
@@ -749,6 +774,78 @@ begin
   finally
     LStringList.Free;
   end;
+end;
+
+function TStringArrayHelper.StartsWith(const AArray: TArray<string>; const AIgnoreCase: Boolean): Boolean;
+var
+  LCompareFunc: TStringCompareFunc;
+begin
+  if Length(Self) < Length(AArray) then
+    Exit(False);
+
+  LCompareFunc := nil;
+  if AIgnoreCase then
+    LCompareFunc := function (const AString1, AString2: string): Boolean
+    begin
+      Result := SameText(AString1, AString2); // case insensitive
+    end
+  else
+    LCompareFunc := function (const AString1, AString2: string): Boolean
+    begin
+      Result := AString1 = AString2; // case sensitive
+    end;
+
+  Result := StartsWith(AArray, LCompareFunc);
+end;
+
+function TStringArrayHelper.StartsWith(const AArray: TArray<string>;
+  const ACompareFunc: TStringCompareFunc): Boolean;
+var
+  LCommonLength, LIndex: Integer;
+begin
+  Result := True;
+
+  if Length(Self) < Length(AArray) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  LCommonLength := Min(Length(Self), Length(AArray));
+  for LIndex := 0 to LCommonLength-1 do
+  begin
+    if not ACompareFunc(Self[LIndex], AArray[LIndex]) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
+function TStringArrayHelper.SubArray(const AStartIndex: Integer): TArray<string>;
+begin
+  Result := Copy(Self, AStartIndex, MAXINT);
+end;
+
+function TStringArrayHelper.SubArray(const AStartIndex: Integer; const ACount: Integer): TArray<string>;
+begin
+  Result := Copy(Self, AStartIndex, ACount);
+end;
+
+function TStringArrayHelper.Contains(const AString: string): Boolean;
+{$ifndef Delphi12Athens_UP}
+var
+  LIndex: Integer;
+{$endif}
+begin
+  {$ifdef Delphi12Athens_UP}
+  Result := TArray.Contains<string>(Self, AString);
+  {$else}
+  for LIndex := Low(Self) to High(Self) do
+    if AString = Self[LIndex] then
+      Exit(True);
+  Result := False;
+  {$endif}
 end;
 
 end.

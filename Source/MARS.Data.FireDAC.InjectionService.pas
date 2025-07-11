@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -10,7 +10,7 @@ unit MARS.Data.FireDAC.InjectionService;
 interface
 
 uses
-  Classes, SysUtils, Rtti, Types
+  Classes, SysUtils, Rtti
   , MARS.Core.Injection
   , MARS.Core.Injection.Interfaces
   , MARS.Core.Injection.Types
@@ -37,7 +37,9 @@ implementation
 
 uses
   MARS.Rtti.Utils
-, MARS.Core.Token, MARS.Core.URL, MARS.Core.Engine, MARS.Core.Application
+, MARS.Core.Token, MARS.Core.URL
+, MARS.Core.Engine.Interfaces
+, MARS.Core.Application.Interfaces
 , Data.DB, FireDAC.Comp.Client
 , MARS.Data.FireDAC
 ;

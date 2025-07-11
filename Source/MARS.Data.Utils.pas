@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -134,7 +134,7 @@ begin
 //        ftBlob: ;
         ftMemo: AObject.AddPair(APairName, AField.AsString);
 //        ftGraphic: ;
-//        ftFmtMemo: ;
+        ftFmtMemo: AObject.AddPair(APairName, AField.AsString);
 //        ftParadoxOle: ;
 //        ftDBaseOle: ;
 //        ftTypedBinary: ;
@@ -154,8 +154,8 @@ begin
         ftGuid: AObject.AddPair(APairName, AField.AsString);
         ftTimeStamp: AObject.AddPair(APairName, DateFieldToJSON(AField));
         ftFMTBcd: AObject.AddPair(APairName, NumericFieldToJSON(AField, AOptions.UseDisplayFormatForNumericFields));
-        ftFixedWideChar: AObject.AddPair(APairName, AField.AsString);
-        ftWideMemo: AObject.AddPair(APairName, AField.AsString);
+        ftFixedWideChar: AObject.AddPair(APairName, AField.AsWideString);
+        ftWideMemo: AObject.AddPair(APairName, AField.AsWideString);
 //        ftOraTimeStamp: ;
 //        ftOraInterval: ;
         ftLongWord: AObject.AddPair(APairName, NumericFieldToJSON(AField, AOptions.UseDisplayFormatForNumericFields));

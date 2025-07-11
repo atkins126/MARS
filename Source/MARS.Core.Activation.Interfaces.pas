@@ -1,5 +1,5 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
@@ -11,7 +11,9 @@ interface
 
 uses
   SysUtils, Classes, Generics.Collections, Rtti, Diagnostics
-, MARS.Core.URL, MARS.Core.Application, MARS.Core.Engine, MARS.Core.Token
+, MARS.Core.URL, MARS.Core.Token
+, MARS.Core.Engine.Interfaces
+, MARS.Core.Application.Interfaces
 , MARS.Core.MediaType, MARS.Core.Injection.Types, MARS.Core.RequestAndResponse.Interfaces
 ;
 
@@ -22,8 +24,9 @@ type
 
     procedure Invoke;
 
-    function GetApplication: TMARSApplication;
-    function GetEngine: TMARSEngine;
+    function GetId: string;
+    function GetApplication: IMARSApplication;
+    function GetEngine: IMARSEngine;
     function GetInvocationTime: TStopwatch;
     function GetSetupTime: TStopwatch;
     function GetTeardownTime: TStopwatch;
@@ -43,8 +46,9 @@ type
     function GetURLPrototype: TMARSURL;
     function GetToken: TMARSToken;
 
-    property Application: TMARSApplication read GetApplication;
-    property Engine: TMARSEngine read GetEngine;
+    property Id: string read GetId;
+    property Application: IMARSApplication read GetApplication;
+    property Engine: IMARSEngine read GetEngine;
     property InvocationTime: TStopwatch read GetInvocationTime;
     property SetupTime: TStopwatch read GetSetupTime;
     property TeardownTime: TStopwatch read GetTeardownTime;

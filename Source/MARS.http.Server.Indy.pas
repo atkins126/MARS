@@ -1,8 +1,9 @@
 (*
-  Copyright 2016, MARS-Curiosity library
+  Copyright 2025, MARS-Curiosity library
 
   Home: https://github.com/andrea-magni/MARS
 *)
+
 unit MARS.http.Server.Indy;
 
 {$I MARS.inc}
@@ -18,7 +19,9 @@ uses
 // to enable standalone SSL
 , IdBaseComponent, IdComponent, IdServerIOHandler, IdSSL, IdSSLOpenSSL
 // MARS
-, MARS.Core.Engine, MARS.Core.Token, MARS.Core.RequestAndResponse.Interfaces
+, MARS.Core.Exceptions
+, MARS.Core.Engine.Interfaces
+, MARS.Core.Token, MARS.Core.RequestAndResponse.Interfaces
 ;
 
 type
@@ -87,6 +90,7 @@ type
     function GetContentType: string; inline;
     function GetContentLength: Integer; inline;
     function GetStatusCode: Integer; inline;
+    function GetReasonString: string; inline;
     procedure SetContent(const AContent: string); inline;
     procedure SetContentEncoding(const AContentEncoding: string); inline;
     procedure SetContentStream(const AContentStream: TStream); inline;
@@ -94,10 +98,13 @@ type
     procedure SetContentLength(const ALength: Integer); inline;
     procedure SetHeader(const AName: string; const AValue: string); inline;
     procedure SetStatusCode(const AStatusCode: Integer); inline;
+    procedure SetReasonString(const AReasonString: string); inline;
     procedure SetCookie(const AName, AValue, ADomain, APath: string; const AExpiration: TDateTime; const ASecure: Boolean); inline;
     procedure RedirectTo(const AURL: string);
     // -------------------------------------------------------------------------
     constructor Create(AWebResponse: TWebResponse); virtual;
+
+    property WebResponse: TWebResponse read FWebResponse;
   end;
 
   TMARSIdHTTPAppRequest = class(TIdHTTPAppRequest)
@@ -111,7 +118,7 @@ type
 
   TMARShttpServerIndy = class(TIdCustomHTTPServer)
   private
-    FEngine: TMARSEngine;
+    FEngine: IMARSEngine;
     FStartedAt: TDateTime;
     FStoppedAt: TDateTime;
     FBeforeCommandGet: TBeforeCommandGetFunc;
@@ -135,9 +142,11 @@ type
     procedure SetupSSLIOHandler(); virtual;
     function DoQuerySSLPort(APort: TIdPort): Boolean; override;
   public
-    constructor Create(AEngine: TMARSEngine); virtual;
+    constructor Create(AEngine: IMARSEngine); virtual;
+    destructor Destroy; override;
 
-    property Engine: TMARSEngine read FEngine;
+
+    property Engine: IMARSEngine read FEngine;
     property StartedAt: TDateTime read FStartedAt;
     property StoppedAt: TDateTime read FStoppedAt;
     property UpTime: TTimeSpan read GetUpTime;
@@ -157,12 +166,18 @@ uses
 
 { TMARShttpServerIndy }
 
-constructor TMARShttpServerIndy.Create(AEngine: TMARSEngine);
+constructor TMARShttpServerIndy.Create(AEngine: IMARSEngine);
 begin
   inherited Create(nil);
   OnParseAuthentication := ParseAuthenticationHandler;
   FEngine := AEngine;
   FBeforeCommandGet := nil;
+end;
+
+destructor TMARShttpServerIndy.Destroy;
+begin
+  FEngine := nil;
+  inherited;
 end;
 
 procedure TMARShttpServerIndy.DoCommandGet(AContext: TIdContext;
@@ -619,6 +634,11 @@ begin
   Result := FWebResponse.ContentType;
 end;
 
+function TMARSWebResponse.GetReasonString: string;
+begin
+  Result := FWebResponse.ReasonString;
+end;
+
 function TMARSWebResponse.GetStatusCode: Integer;
 begin
   Result := FWebResponse.StatusCode;
@@ -672,6 +692,11 @@ end;
 procedure TMARSWebResponse.SetHeader(const AName, AValue: string);
 begin
   FWebResponse.CustomHeaders.Values[AName] := AValue;
+end;
+
+procedure TMARSWebResponse.SetReasonString(const AReasonString: string);
+begin
+  FWebResponse.ReasonString := AReasonString;
 end;
 
 procedure TMARSWebResponse.SetStatusCode(const AStatusCode: Integer);

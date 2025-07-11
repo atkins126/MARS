@@ -1,9 +1,11 @@
 (*
-  Copyright 2016-2023, MARS-Curiosity - REST Library
+  Copyright 2025, MARS-Curiosity - REST Library
 
   Home: https://github.com/andrea-magni/MARS
 *)
+
 program MARSTemplateServerConsoleApplication;
+
 {$APPTYPE CONSOLE}
 
 {$I MARS.inc}
@@ -14,8 +16,10 @@ uses
   Types,
   MARS.http.Server.Indy,
   Server.Ignition in 'Server.Ignition.pas',
-  Server.Resources in 'Server.Resources.pas',
-  ServerConst in 'ServerConst.pas';
+  Server.Resources.HelloWorld in 'Server.Resources.HelloWorld.pas',
+  ServerConst in 'ServerConst.pas',
+  Server.Resources.OpenAPI in 'Server.Resources.OpenAPI.pas',
+  Server.Resources.Token in 'Server.Resources.Token.pas';
 
 {$R *.res}
 
